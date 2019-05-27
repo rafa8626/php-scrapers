@@ -1,3 +1,3 @@
-# PHP Scrapers
+# Scrapers
 
-A couple of PHP scrappers that parse content from 2 public legal websites. They show 2 different levels of complexity
+Collection of scrapers written in PHP 7.1 that grab the decisions from public legal websites, showing different levels of complexity to obtain them.
