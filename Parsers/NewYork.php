@@ -27,16 +27,20 @@ class NewYork extends Base {
         rsort($years);
         $months = range(1, 12);
         rsort($months);
-        $days = [1, 30];
 
         foreach ($years as $year) {
             foreach ($months as $month) {
-                $startDate = sprintf('%d02/%d02/%d04', $month, $days[0], $year);
-                $endDate = sprintf('%d02/%d02/%d04', $month, $days[1], $year);
-                
+            	if ($month > date('n')) {
+            		continue;
+	            }
+                $startDate = sprintf('%02d/%02d/%d', $month, 1, $year);
+                $endDate = sprintf('%02d/%02d/%d', $month, date('j'), $year);
+
                 $this->searchByMonth($startDate, $endDate);
                 $this->_gatherItems($year);
             }
+
+            exit;
         }
     }
 
@@ -63,29 +67,28 @@ class NewYork extends Base {
 
     /**
      *
-     * @return void
+     * @return string[]
      * @param \DOMDocument|null $dom
      */
     private function _gatherItems(string $year) {
-        print_r($this->dom); exit;
         $xpath = new \DOMXPath($this->dom);
-        $items = $xpath->query('//tr[@class="hover"]/td/span');
+        $items = $xpath->query('//table/tr[@valign="top"]/td[@width="10%"]');
         $list = [];
         foreach ($items as $item) {
-            $main = $xpath->query('.//span[@class="title"]', $item);
-            if (!$main->length) {
-                continue;
-            }
-            $row = $main[0];
-            preg_match('/(?P<title>.*?)\s+\((?P<id>.*?)\s+\-\s+Published\)/msi', $row->nodeValue, $matches);
-            $pdf = preg_replace('/viewOpinion\("(.*?)"\)/ims', '$1', $row->getAttribute('onclick'));
+	        $fileTarget = $item->nextSibling->nextSibling
+	            ->nextSibling->nextSibling
+	            ->nextSibling->nextSibling
+		        ->nextSibling->nextSibling;
+
+	        $file = $xpath->query('.//a', $fileTarget->firstChild);
+            preg_match('/^\d+.*?NYSlipOp.*?(?P<id>\d+)$/msi', $fileTarget->nodeValue, $matches);
             $list[] = [
                 'id' => $matches['id'],
-                'title' => preg_replace('/(^\s+)|(,\s+$)/', "", $matches['title']),
-                'description' => $xpath->query('.//span[@class="desc"]', $item)[0]->nodeValue,
-                'file' => $pdf,
-                'court' => 'Supreme Court',
-                'state' => 'NC',
+                'title' => $item->nodeValue,
+                'description' => '',
+                'file' => $file->item(0)->getAttribute('href'),
+                'court' => 'Court of Appeals',
+                'state' => 'NY',
                 'year' => $year,
             ];
         }
