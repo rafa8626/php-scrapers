@@ -3,7 +3,7 @@
 namespace Parsers;
 
 /**
- * Class NorthCarolina
+ * NorthCarolina class
  * @package Parsers
  */
 class NorthCarolina extends Base {
@@ -17,27 +17,32 @@ class NorthCarolina extends Base {
     }
 
     /**
+     * Gather current items and then load pages since 1998 to obtain archive.
      *
      * @see parent::parse()
-     * @return string[]
+     * @return void
      */
     public function parse() {
-        // 1) Gather most recent ones
         $this->items = $this->_gatherItems(date('Y'));
-
-        // 2) find form to start download items per year
         $years = range(1998, date('Y', strtotime('-1 year')));
         rsort($years);
         $baseUrl = 'https://appellate.nccourts.org/opinion-filings/?c=sc&year=%d';
         foreach ($years as $year) {
-            $this->load(sprintf($baseUrl, $year));
-            $this->items = array_merge($this->items, $this->_gatherItems($year));
+            try {
+                echo "\n\nGathering items from year {$year}\n";
+                $this->load(sprintf($baseUrl, $year));
+                $this->items = array_merge($this->items, $this->_gatherItems($year));
+            } catch (\Exception $e) {
+                die($e->getMessage());
+            }
         }
     }
 
     /**
      *
-     * @param \DOMDocument|null $dom
+     *
+     * @param string $year
+     * @return string[]
      */
     private function _gatherItems(string $year) {
         $xpath = new \DOMXPath($this->dom);
@@ -48,14 +53,17 @@ class NorthCarolina extends Base {
             if (!$main->length) {
                 continue;
             }
-            $row = $main[0];
-            preg_match('/(?P<title>.*?)\s+\((?P<id>.*?)\s+\-\s+Published\)/msi', $row->nodeValue, $matches);
+            $row = $main->item(0);
+            preg_match('/(?P<title>.*?)\s+\((?P<id>[\w-,]+)\s+\-\s+Published\)/msi', $row->nodeValue, $matches);
             $pdf = preg_replace('/viewOpinion\("(.*?)"\)/ims', '$1', $row->getAttribute('onclick'));
+            $title = preg_replace('/(^\s+)|(,\s+$)/', "", $matches['title']);
+            echo "\t{$matches['id']} - {$title}\n";
             $list[] = [
                 'id' => $matches['id'],
-                'title' => preg_replace('/(^\s+)|(,\s+$)/', "", $matches['title']),
+                'title' => $title,
                 'description' => $xpath->query('.//span[@class="desc"]', $item)[0]->nodeValue,
                 'file' => $pdf,
+                'extension' => 'pdf',
                 'court' => 'Supreme Court',
                 'state' => 'NC',
                 'year' => $year,

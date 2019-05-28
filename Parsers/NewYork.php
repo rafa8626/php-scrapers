@@ -3,7 +3,7 @@
 namespace Parsers;
 
 /**
- * Class NorthCarolina
+ * NewYork class
  * @package Parsers
  */
 class NewYork extends Base {
@@ -17,16 +17,17 @@ class NewYork extends Base {
     }
 
     /**
+     * Search decision per year per month (using start and end dates).
      *
      * @see parent::parse()
-     * @return string[]
+     * @return void
      */
     public function parse() {
-        // 1) POST on form
         $years = range(1998, date('Y'));
         rsort($years);
         $months = range(1, 12);
         rsort($months);
+        $this->items = [];
 
         foreach ($years as $year) {
             foreach ($months as $month) {
@@ -35,16 +36,21 @@ class NewYork extends Base {
 	            }
                 $startDate = sprintf('%02d/%02d/%d', $month, 1, $year);
                 $endDate = sprintf('%02d/%02d/%d', $month, date('j'), $year);
+                echo "\n\nGathering items from {$startDate} to {$endDate}\n";
 
-                $this->searchByMonth($startDate, $endDate);
-                $this->_gatherItems($year);
+                try {
+                    $this->searchByMonth($startDate, $endDate);
+                    $this->items = array_merge($this->items, $this->_gatherItems($year));
+                } catch (\Exception $e) {
+                    die($e->getMessage());
+                }
             }
-
-            exit;
         }
     }
 
     /**
+     * Execute POST call to retrieve decisions per month.
+     *
      * @param string $startDate
      * @param string $endDate
      * @return void
@@ -67,26 +73,30 @@ class NewYork extends Base {
 
     /**
      *
+     *
+     * @param string $url
      * @return string[]
-     * @param \DOMDocument|null $dom
      */
     private function _gatherItems(string $year) {
         $xpath = new \DOMXPath($this->dom);
         $items = $xpath->query('//table/tr[@valign="top"]/td[@width="10%"]');
         $list = [];
         foreach ($items as $item) {
-	        $fileTarget = $item->nextSibling->nextSibling
-	            ->nextSibling->nextSibling
-	            ->nextSibling->nextSibling
-		        ->nextSibling->nextSibling;
+            $fileTarget = $item->nextSibling->nextSibling
+                ->nextSibling->nextSibling
+                ->nextSibling->nextSibling
+                ->nextSibling->nextSibling;
 
-	        $file = $xpath->query('.//a', $fileTarget->firstChild);
+            $file = $xpath->query('.//a', $fileTarget->firstChild);
             preg_match('/^\d+.*?NYSlipOp.*?(?P<id>\d+)$/msi', $fileTarget->nodeValue, $matches);
+            $title = $item->nodeValue;
+            echo "\t{$matches['id']} - {$title}\n";
             $list[] = [
                 'id' => $matches['id'],
-                'title' => $item->nodeValue,
+                'title' => $title,
                 'description' => '',
                 'file' => $file->item(0)->getAttribute('href'),
+                'extension' => 'html',
                 'court' => 'Court of Appeals',
                 'state' => 'NY',
                 'year' => $year,
