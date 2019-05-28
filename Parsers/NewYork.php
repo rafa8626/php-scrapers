@@ -31,7 +31,7 @@ class NewYork extends Base {
 
         foreach ($years as $year) {
             foreach ($months as $month) {
-            	if ($month > date('n')) {
+            	if ($year >= date('Y') && $month > date('n')) {
             		continue;
 	            }
                 $startDate = sprintf('%02d/%02d/%d', $month, 1, $year);
