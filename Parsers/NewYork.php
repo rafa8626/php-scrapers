@@ -40,7 +40,7 @@ class NewYork extends Base {
 
                 try {
                     $this->searchByMonth($startDate, $endDate);
-                    $this->items = array_merge($this->items, $this->_gatherItems($year));
+                    $this->items = array_merge($this->items, $this->_gatherItems());
                 } catch (\Exception $e) {
                     die($e->getMessage());
                 }
@@ -77,11 +77,12 @@ class NewYork extends Base {
      * @param string $url
      * @return string[]
      */
-    private function _gatherItems(string $year) {
+    private function _gatherItems() {
         $xpath = new \DOMXPath($this->dom);
         $items = $xpath->query('//table/tr[@valign="top"]/td[@width="10%"]');
         $list = [];
         foreach ($items as $item) {
+            $date = \DateTime::createFromFormat('m/d/Y', $item->nextSibling->nextSibling->nodeValue);
             $fileTarget = $item->nextSibling->nextSibling
                 ->nextSibling->nextSibling
                 ->nextSibling->nextSibling
@@ -99,7 +100,7 @@ class NewYork extends Base {
                 'extension' => 'html',
                 'court' => 'Court of Appeals',
                 'state' => 'NY',
-                'year' => $year,
+                'date' => $date->format('Y-m-d'),
             ];
         }
 

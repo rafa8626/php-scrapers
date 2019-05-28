@@ -23,7 +23,7 @@ class NorthCarolina extends Base {
      * @return void
      */
     public function parse() {
-        $this->items = $this->_gatherItems(date('Y'));
+        $this->items = $this->_gatherItems();
         $years = range(1998, date('Y', strtotime('-1 year')));
         rsort($years);
         $baseUrl = 'https://appellate.nccourts.org/opinion-filings/?c=sc&year=%d';
@@ -31,7 +31,7 @@ class NorthCarolina extends Base {
             try {
                 echo "\n\nGathering items from year {$year}\n";
                 $this->load(sprintf($baseUrl, $year));
-                $this->items = array_merge($this->items, $this->_gatherItems($year));
+                $this->items = array_merge($this->items, $this->_gatherItems());
             } catch (\Exception $e) {
                 die($e->getMessage());
             }
@@ -44,11 +44,17 @@ class NorthCarolina extends Base {
      * @param string $year
      * @return string[]
      */
-    private function _gatherItems(string $year) {
+    private function _gatherItems() {
         $xpath = new \DOMXPath($this->dom);
-        $items = $xpath->query('//tr[@class="hover"]/td/span');
+        $items = $xpath->query('//tr/td');
         $list = [];
         foreach ($items as $item) {
+            $dateTarget = $xpath->query('.//strong', $item);
+            if ($dateTarget->length) {
+                preg_match('/filed:\s+(?P<id>\d{1,2}\s+[a-zA-Z]+\s+\d{4})\s*\n/msi', trim($dateTarget->item(0)->nodeValue), $match);
+                $date = \DateTime::createFromFormat('j F Y', $match['id'])->format('Y-m-d');
+            }
+
             $main = $xpath->query('.//span[@class="title"]', $item);
             if (!$main->length) {
                 continue;
@@ -56,7 +62,7 @@ class NorthCarolina extends Base {
             $row = $main->item(0);
             preg_match('/(?P<title>.*?)\s+\((?P<id>[\w-,]+)\s+\-\s+Published\)/msi', $row->nodeValue, $matches);
             $pdf = preg_replace('/viewOpinion\("(.*?)"\)/ims', '$1', $row->getAttribute('onclick'));
-            $title = preg_replace('/(^\s+)|(,\s+$)/', "", $matches['title']);
+            $title = trim($matches['title'], ' ,');
             echo "\t{$matches['id']} - {$title}\n";
             $list[] = [
                 'id' => $matches['id'],
@@ -66,7 +72,7 @@ class NorthCarolina extends Base {
                 'extension' => 'pdf',
                 'court' => 'Supreme Court',
                 'state' => 'NC',
-                'year' => $year,
+                'date' => $date,
             ];
         }
 

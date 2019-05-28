@@ -39,6 +39,5 @@ Choose one of them, or exit just hit Enter.
 
 ## TODO
 
-1. Add full date for each of the decisions grabbed.
-2. Include SQL database schema.
+1. Include SQL database schema.
 3. Add classes and commands to save results in database using PDO.

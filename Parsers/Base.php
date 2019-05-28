@@ -70,6 +70,7 @@ abstract class Base {
         $curl = new Curl($url);
         $dir = dirname($path);
         if (!file_exists($dir)) {
+            echo "Creating directory {$dir} for path {$path}\n";
             mkdir($dir, 0777, true);
         }
         $curl->download($path);
@@ -105,7 +106,8 @@ abstract class Base {
         foreach ($this->items as $item) {
             $state = strtolower($item['state']);
             $court = strtolower(str_replace(' ', '-', $item['court']));
-            $path = __DIR__ . "/../documents/{$state}/{$court}/{$item['year']}/{$item['id']}.{$item['extension']}";
+            $year = \DateTime::createFromFormat('Y-m-d', $item['date'])->format('Y');
+            $path = __DIR__ . "/../documents/{$state}/{$court}/{$year}/{$item['id']}.{$item['extension']}";
             file_put_contents("/tmp/{$state}.txt", var_export($item, true), FILE_APPEND);
 
             // Avoid saving it if file exists already
